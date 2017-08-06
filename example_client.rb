@@ -50,45 +50,99 @@ def print_board(game)
   end
 end
 
+def calculate_legal_move(board)
+  board['rows'].flatten.each_with_index do |cell, index|
+    return index if cell.nil?
+  end
+end
+
 def calculate_horizontal_win(board, token)
   # Horizontal Win first row
   if board['rows'][0][0] == token && board['rows'][0][1] == token
-    return 2
+    return 2 if board['rows'][0][2].nil?
   end
 
   if board['rows'][0][1] == token && board['rows'][0][2] == token
-    return 0
+    return 0 if board['rows'][0][0].nil?
   end
 
   if board['rows'][0][0] == token && board['rows'][0][2] == token
-    return 1
+    return 1 if board['rows'][0][1].nil?
   end
 
   # Horizontal Win second row
   if board['rows'][1][0] == token && board['rows'][1][1] == token
-    return 2
+    return 5 if board['rows'][1][2].nil?
   end
 
   if board['rows'][1][1] == token && board['rows'][1][2] == token
-    return 0
+    return 3 if board['rows'][1][0].nil?
   end
 
   if board['rows'][1][0] == token && board['rows'][1][2] == token
-    return 1
+    return 4 if board['rows'][1][1].nil?
   end
-
 
   # Horizontal Win third row
   if board['rows'][2][0] == token && board['rows'][2][1] == token
-    return 2
+    return 8 if board['rows'][2][2].nil?
   end
 
   if board['rows'][2][1] == token && board['rows'][2][2] == token
-    return 0
+    return 6 if board['rows'][2][0].nil?
   end
 
   if board['rows'][2][0] == token && board['rows'][2][2] == token
-    return 1
+    return 7 if board['rows'][2][1].nil?
+  end
+end
+
+def calculate_verticle_win(board, token)
+  # Verticle Win first row
+  if board['rows'][0][0] == token && board['rows'][2][0] == token
+    return 3 if board['rows'][1][0].nil?
+  end
+
+  if board['rows'][0][0] == token && board['rows'][1][0] == token
+    return 6 if board['rows'][2][0].nil?
+  end
+
+  if board['rows'][1][0] == token && board['rows'][2][0] == token
+    return 0 if board['rows'][0][0].nil?
+  end
+
+  # Verticle Win second row
+  if board['rows'][0][1] == token && board['rows'][2][1] == token
+    return 4 if board['rows'][1][1].nil?
+  end
+
+  if board['rows'][0][1] == token && board['rows'][1][1] == token
+    return 7 if board['rows'][2][1].nil?
+  end
+
+  if board['rows'][1][1] == token && board['rows'][2][1] == token
+    return 1 if board['rows'][0][1].nil?
+  end
+
+  # Verticle Win third row
+  if board['rows'][0][2] == token && board['rows'][2][2] == token
+    return 5 if board['rows'][1][2].nil?
+  end
+
+  if board['rows'][0][2] == token && board['rows'][1][2] == token
+    return 8 if board['rows'][2][2].nil?
+  end
+
+  if board['rows'][1][2] == token && board['rows'][2][2] == token
+    return 2 if board['rows'][0][2].nil?
+  end
+end
+
+def find_board(game)
+  return game['nextBoard'] if game['nextBoard']
+
+  game['boards'].each_with_index do |board, index|
+    return index if board['playable']
   end
 end
 
@@ -99,11 +153,18 @@ def calculate_move(board, token)
       no_moves = false unless cell.nil?
     end
   end
-  if no_moves
-    return 0
-  end
 
+  return 0 if no_moves
 
+  cell = calculate_horizontal_win(board, token)
+
+  return cell unless cell.nil?
+
+  cell = calculate_verticle_win(board, token)
+
+  return cell unless cell.nil?
+
+  calculate_legal_move(board)
 end
 
 http_client = Net::HTTP.new('tictactoe.inseng.net', 80)
@@ -130,13 +191,13 @@ game = join_game(http_client, player_name, game_id, options[:auto])
 loop do
   print_board(game)
   break if game['state'] != 'inProgress'
-  token = game['players'].select { |player| player['name'] == "sburnett"}.first['token']
-  board = 0
-  cell = 0
-  if game['nextBoard']
-    board = game['nextBoard']
-    cell = calculate_move(game['boards'][board], token)
-  end
+
+  token = game['players'].select do |player|
+    player['name'] == 'sburnett'
+  end.first['token']
+
+  board = find_board(game)
+  cell = calculate_move(game['boards'][board], token)
 
   puts "MY MOVE BOARD #{board} CELL #{cell}"
 
@@ -148,7 +209,6 @@ loop do
     cell
   )
 end
-
 
 puts "Game state: #{game['state']}"
 puts "Game winner: #{game['winner'] ? game['winner']['name'] : 'None'}"
