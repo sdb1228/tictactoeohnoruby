@@ -1,5 +1,4 @@
 # tictactoeohnoruby
 
 TODO:
-- Calculate diagonal wins
-- Calculate blocking
+smarter moves before
