@@ -138,6 +138,34 @@ def calculate_verticle_win(board, token)
   end
 end
 
+def calculate_diagonal_win(board, token)
+  # Backslash Win
+  if board['rows'][0][0] == token && board['rows'][2][2] == token
+    return 5 if board['rows'][1][1].nil?
+  end
+
+  if board['rows'][1][1] == token && board['rows'][2][2] == token
+    return 0 if board['rows'][0][0].nil?
+  end
+
+  if board['rows'][0][0] == token && board['rows'][1][1] == token
+    return 8 if board['rows'][2][2].nil?
+  end
+
+  # Forwardslash Win
+  if board['rows'][0][2] == token && board['rows'][2][0] == token
+    return 5 if board['rows'][1][1].nil?
+  end
+
+  if board['rows'][0][2] == token && board['rows'][1][1] == token
+    return 7 if board['rows'][2][0].nil?
+  end
+
+  if board['rows'][1][1] == token && board['rows'][2][0] == token
+    return 2 if board['rows'][0][2].nil?
+  end
+end
+
 def find_board(game)
   return game['nextBoard'] if game['nextBoard']
 
@@ -157,14 +185,20 @@ def calculate_move(board, token)
   return 0 if no_moves
 
   cell = calculate_horizontal_win(board, token)
-
   return cell unless cell.nil?
-
   cell = calculate_verticle_win(board, token)
-
   return cell unless cell.nil?
+  cell = calculate_diagonal_win(board, token)
+  return cell unless cell.nil?
+end
 
-  calculate_legal_move(board)
+def calculate_blocking_move(board, token)
+  cell = calculate_horizontal_win(board, token)
+  return cell unless cell.nil?
+  cell = calculate_verticle_win(board, token)
+  return cell unless cell.nil?
+  cell = calculate_diagonal_win(board, token)
+  return cell unless cell.nil?
 end
 
 http_client = Net::HTTP.new('tictactoe.inseng.net', 80)
@@ -196,8 +230,17 @@ loop do
     player['name'] == 'sburnett'
   end.first['token']
 
+  opponent_token = game['players'].reject do |player|
+    player['name'] == 'sburnett'
+  end.first['token']
+
   board = find_board(game)
   cell = calculate_move(game['boards'][board], token)
+  if cell.nil?
+    cell = calculate_blocking_move(game['boards'][board], opponent_token)
+  end
+
+  cell = calculate_legal_move(game['boards'][board]) if cell.nil?
 
   puts "MY MOVE BOARD #{board} CELL #{cell}"
 
